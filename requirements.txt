@@ -1,3 +1,4 @@
+openpyxl
 altair
 attrs
 blinker
@@ -58,3 +59,4 @@ urllib3
 watchdog
 yarg
 zipp
+
