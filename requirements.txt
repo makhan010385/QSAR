@@ -54,7 +54,10 @@ toml
 tornado
 typing-extensions
 tzdata
+streamlit==1.38.0 
+protobuf==3.20.*
 urllib3
 watchdog
 yarg
 zipp
+
