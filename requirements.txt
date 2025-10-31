@@ -121,6 +121,9 @@ urllib3
 watchdog
 yarg
 zipp
+xgboost 
+catboost
+lightgbm
 
 
 
