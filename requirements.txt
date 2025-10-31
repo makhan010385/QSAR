@@ -57,7 +57,7 @@ tzdata
 urllib3
 watchdog
 yarg
-zippopenpyxl
+openpyxl
 altair
 attrs
 blinker
@@ -121,6 +121,7 @@ urllib3
 watchdog
 yarg
 zipp
+
 
 
 
