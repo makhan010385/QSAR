@@ -1,4 +1,4 @@
-rdkit-pypi
+ 
 altair
 attrs
 blinker
@@ -125,6 +125,7 @@ zipp
 xgboost 
 catboost
 lightgbm
+
 
 
 
