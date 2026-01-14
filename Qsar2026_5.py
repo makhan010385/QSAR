@@ -9,112 +9,97 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 
-# ---------------------------
-# Helpers
-# ---------------------------
-def extract_numeric(v):
-    if pd.isna(v): return np.nan
-    m = re.findall(r"[-+]?\d*\.\d+|\d+", str(v))
-    return float(m[0]) if m else np.nan
-
-def convert_to_uM(v, unit):
-    u = unit.lower()
-    if u=="nm": return v/1000
-    if u=="pm": return v/1e6
-    if u=="mm": return v*1000
-    return v
-
+# ---------------- UI ----------------
 st.set_page_config(page_title="Strong Anticancer Filter", layout="wide")
-st.title("🧬 Strong Anticancer Compound Filter (IC50 ≤ 3 µM)")
+st.title("🧬 Structure-Aware Strong Anticancer Filter (IC50 ≤ 3 µM)")
 
-# ---------------------------
-# Initialize session state
-# ---------------------------
-if "trained_models" not in st.session_state:
-    st.session_state.trained_models = None
-if "scaler" not in st.session_state:
-    st.session_state.scaler = None
-if "num_cols" not in st.session_state:
-    st.session_state.num_cols = None
+# ---------------- Session State ----------------
+if "models" not in st.session_state: st.session_state.models = None
+if "scaler" not in st.session_state: st.session_state.scaler = None
+if "num_cols" not in st.session_state: st.session_state.num_cols = None
+if "knn" not in st.session_state: st.session_state.knn = None
 
-# ---------------------------
-# Training
-# ---------------------------
-st.subheader("1️⃣ Upload Training Data (with IC50)")
+# ---------------- Training ----------------
+st.subheader("1️⃣ Upload Training Dataset (IC50 already in µM)")
 train_file = st.file_uploader("Upload training dataset", type=["csv","xlsx"], key="train")
 
 if train_file:
-    df_tr = pd.read_excel(train_file) if train_file.name.endswith(".xlsx") else pd.read_csv(train_file)
-    st.write("Training data preview:")
-    st.dataframe(df_tr.head())
+    df = pd.read_excel(train_file) if train_file.name.endswith(".xlsx") else pd.read_csv(train_file)
+    st.dataframe(df.head())
 
-    id_col = st.selectbox("Compound ID", df_tr.columns)
-    ic50_col = st.selectbox("IC50 column", df_tr.columns)
-    ic50_unit = st.selectbox("IC50 unit", ["µM","nM","pM","mM"])
+    id_col = st.selectbox("Compound ID column", df.columns)
+    ic50_col = st.selectbox("IC50 column (µM)", df.columns)
 
-    df_tr["IC50_raw"] = df_tr[ic50_col].apply(extract_numeric)
-    df_tr["IC50_uM"] = convert_to_uM(df_tr["IC50_raw"], ic50_unit)
-    df_tr["Label"] = (df_tr["IC50_uM"] <= 3).astype(int)
+    df["Label"] = (df[ic50_col] <= 3).astype(int)
 
-    num_cols = df_tr.select_dtypes(include=[np.number]).columns.drop(
-        ["IC50_raw","IC50_uM","Label"], errors="ignore"
-    )
-    X = df_tr[num_cols]
-    y = df_tr["Label"]
+    num_cols = df.select_dtypes(include=[np.number]).columns.drop(["Label"], errors="ignore")
+    X = df[num_cols]
+    y = df["Label"]
 
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    Xs = scaler.fit_transform(X)
 
-    X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(Xs, y, test_size=0.3, random_state=42)
 
     models = {
-        "Logistic Regression": LogisticRegression(max_iter=1000),
+        "LR": LogisticRegression(max_iter=1000),
         "SVM": SVC(probability=True),
-        "Decision Tree": DecisionTreeClassifier(),
-        "Random Forest": RandomForestClassifier(),
-        "Naive Bayes": GaussianNB()
+        "DT": DecisionTreeClassifier(),
+        "RF": RandomForestClassifier(),
+        "NB": GaussianNB()
     }
 
-    trained_models = {}
-    st.subheader("📊 Validation Results")
+    trained = {}
+    st.subheader("📊 Validation Accuracy")
     for name, model in models.items():
         model.fit(X_train, y_train)
-        trained_models[name] = model
-        score = model.score(X_val, y_val)
-        st.write(f"{name} Accuracy: {score:.3f}")
+        acc = model.score(X_val, y_val)
+        st.write(f"{name}: {acc:.3f}")
+        trained[name] = model
 
-    st.session_state.trained_models = trained_models
+    # Train KNN for structural similarity
+    knn = KNeighborsClassifier(n_neighbors=5)
+    knn.fit(Xs, y)
+
+    st.session_state.models = trained
     st.session_state.scaler = scaler
     st.session_state.num_cols = num_cols
+    st.session_state.knn = knn
 
-    st.success("Training completed and stored.")
+    st.success("Training completed successfully.")
 
-# ---------------------------
-# Prediction
-# ---------------------------
-st.subheader("2️⃣ Upload New Compounds (No IC50)")
-test_file = st.file_uploader("Upload new compounds file", type=["csv","xlsx"], key="test")
+# ---------------- Screening ----------------
+st.subheader("2️⃣ Upload New Compounds")
+test_file = st.file_uploader("Upload test compounds", type=["csv","xlsx"], key="test")
 
-if test_file:
-    if st.session_state.trained_models is None:
-        st.warning("Please upload and train on training data first.")
-    else:
-        df_new = pd.read_excel(test_file) if test_file.name.endswith(".xlsx") else pd.read_csv(test_file)
-        st.write("New compounds preview:")
-        st.dataframe(df_new.head())
+ml_threshold = st.slider("ML strong-like probability threshold", 0.0, 1.0, 0.7)
+knn_ratio = st.slider("KNN strong-neighbor ratio threshold", 0.0, 1.0, 0.6)
 
-        X_new = df_new[st.session_state.num_cols]
-        X_new_scaled = st.session_state.scaler.transform(X_new)
+if test_file and st.session_state.models:
+    df_new = pd.read_excel(test_file) if test_file.name.endswith(".xlsx") else pd.read_csv(test_file)
+    st.dataframe(df_new.head())
 
-        for name, model in st.session_state.trained_models.items():
-            df_new[name+"_Prob"] = model.predict_proba(X_new_scaled)[:,1]
+    X_new = df_new[st.session_state.num_cols]
+    X_new_scaled = st.session_state.scaler.transform(X_new)
 
-        df_new["Mean_Prob"] = df_new[[c for c in df_new.columns if c.endswith("_Prob")]].mean(axis=1)
-        df_new["Strong_Anticancer"] = df_new["Mean_Prob"] >= 0.7
+    # ML ensemble
+    probs = []
+    for model in st.session_state.models.values():
+        probs.append(model.predict_proba(X_new_scaled)[:,1])
+    df_new["ML_Mean_Prob"] = np.mean(probs, axis=0)
 
-        st.subheader("✅ Filtered Strong Anticancer Compounds")
-        df_strong = df_new[df_new["Strong_Anticancer"]]
-        st.dataframe(df_strong)
+    # KNN similarity vote
+    knn_preds = st.session_state.knn.predict(X_new_scaled)
+    knn_probs = st.session_state.knn.predict_proba(X_new_scaled)[:,1]
+    df_new["KNN_Strong_Ratio"] = knn_probs
 
-        st.download_button("Download Strong Actives", df_strong.to_csv(index=False), "Strong_Actives.csv")
+    # Final decision
+    df_new["Strong_Like"] = (df_new["ML_Mean_Prob"] >= ml_threshold) & (df_new["KNN_Strong_Ratio"] >= knn_ratio)
+
+    st.subheader("✅ Final Selected Strong Compounds")
+    df_keep = df_new[df_new["Strong_Like"]]
+    st.dataframe(df_keep)
+
+    st.download_button("Download Strong Compounds", df_keep.to_csv(index=False), "Strong_Compounds.csv")
