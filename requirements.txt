@@ -21,6 +21,16 @@ markdown-it-py
 MarkupSafe
 matplotlib
 mdurl
+streamlit
+pandas
+numpy
+openpyxl
+matplotlib
+scikit-learn
+imbalanced-learn
+xgboost
+lightgbm
+
 narwhals
 numpy
 openpyxl
