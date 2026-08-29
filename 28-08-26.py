@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # Machine Learning Imports
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, cross_validate, StratifiedKFold
-from sklearn.metrics import matthews_corrcoef, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import matthews_corrcoef, accuracy_score, precision_score, recall_score, f1_score, make_scorer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
 from sklearn.linear_model import LogisticRegression
@@ -170,6 +170,7 @@ st.set_page_config(
 # APP TITLE
 # -------------------------------------------------
 st.title("🧪 PAAD QSAR App (pIC50 ≥ 5.522879)")
+st.caption("Deployment-safe Pandas identity handling and ML metric scoring enabled.")
 
 st.caption("Server-safe Pandas identity handling enabled for CID/SMILES fields.")
 st.markdown("""
@@ -272,7 +273,7 @@ with tab1:
             st.subheader("Generated Descriptors")
             st.dataframe(
                 df_desc.head(20),
-                use_container_width=True
+                width="stretch"
             )
 
             st.info(
@@ -287,7 +288,7 @@ with tab1:
                 st.subheader("Descriptor Statistics")
                 st.dataframe(
                     numeric_desc.describe(),
-                    use_container_width=True
+                    width="stretch"
                 )
 
             output = BytesIO()
@@ -822,7 +823,7 @@ with tab2:
 
                 st.dataframe(
                     df_train[display_cols],
-                    use_container_width=True,
+                    width="stretch",
                     height=400
                 )
 
@@ -960,7 +961,7 @@ with tab2:
 
                     st.dataframe(
                         results_df,
-                        use_container_width=True,
+                        width="stretch",
                         height=500
                     )
 
@@ -1583,7 +1584,7 @@ with tab3:
                 if show_cols:
                     st.dataframe(
                         matched_pic[show_cols].head(200),
-                        use_container_width=True,
+                        width="stretch",
                         height=420
                     )
 
@@ -1777,13 +1778,23 @@ with tab3:
                     f"🤖 {n_splits}-Fold Cross-Validation + MCC"
                 )
 
+                # Explicit scorers avoid UndefinedMetricWarning on folds
+                # where a classifier predicts no samples of one class.
+                # This is especially important for the imbalanced PAAD
+                # Active/Inactive classification problem.
                 scoring = {
-                    "accuracy": "accuracy",
-                    "precision": "precision",
-                    "recall": "recall",
-                    "f1": "f1",
+                    "accuracy": make_scorer(accuracy_score),
+                    "precision": make_scorer(
+                        precision_score, zero_division=0
+                    ),
+                    "recall": make_scorer(
+                        recall_score, zero_division=0
+                    ),
+                    "f1": make_scorer(
+                        f1_score, zero_division=0
+                    ),
                     "roc_auc": "roc_auc",
-                    "mcc": "matthews_corrcoef"
+                    "mcc": make_scorer(matthews_corrcoef)
                 }
 
                 model_results = []
@@ -1902,7 +1913,7 @@ with tab3:
 
                 st.dataframe(
                     display_perf,
-                    use_container_width=True
+                    width="stretch"
                 )
 
                 # -------------------------------------------------
@@ -1920,10 +1931,18 @@ with tab3:
                     performance_df.iloc[0]["MCC"]
                 )
 
-                st.success(
-                    f"🏆 Best Model: {best_model_name} "
-                    f"| CV-MCC = {best_mcc:.4f}"
-                )
+                if best_mcc < 0:
+                    st.warning(
+                        f"The best CV-MCC is {best_mcc:.4f}. "
+                        "The selected model is retained by the requested "
+                        "MCC criterion, but the validation performance "
+                        "should be interpreted cautiously."
+                    )
+                else:
+                    st.success(
+                        f"🏆 Best Model: {best_model_name} "
+                        f"| CV-MCC = {best_mcc:.4f}"
+                    )
 
                 # Fit best model using ALL matched training compounds.
                 best_model.fit(
@@ -2053,7 +2072,7 @@ with tab3:
 
                 st.dataframe(
                     top200,
-                    use_container_width=True,
+                    width="stretch",
                     height=600
                 )
 
