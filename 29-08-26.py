@@ -144,46 +144,209 @@ def process_ic50_values(ic50_series):
 # PAGE CONFIG
 # -------------------------------------------------
 st.set_page_config(
-    page_title="PAAD QSAR App (pIC50 ≥ 5.522879)",
+    page_title="PAAD QSAR App",
     page_icon="🧪",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# -------------------------------------------------
+# CUSTOM CSS
+# -------------------------------------------------
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Inter', sans-serif;
+    }
+
+    .main-header {
+        font-size: 2.6rem;
+        font-weight: 700;
+        color: #1E3A8A;
+        margin-bottom: 0.2rem;
+    }
+
+    .sub-header {
+        font-size: 1.15rem;
+        color: #475569;
+        margin-bottom: 1.5rem;
+    }
+
+    .task-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 16px;
+        padding: 1.2rem;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .task-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1rem;
+        border-left: 5px solid #3B82F6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .metric-card.success {
+        border-left-color: #10B981;
+    }
+
+    .metric-card.warning {
+        border-left-color: #F59E0B;
+    }
+
+    .metric-card.danger {
+        border-left-color: #EF4444;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background: #f1f5f9;
+        border-radius: 8px 8px 0 0;
+        padding: 12px 24px;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: #3B82F6 !important;
+        color: #ffffff !important;
+    }
+
+    .step-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #3B82F6;
+        color: white;
+        font-weight: 700;
+        margin-right: 10px;
+    }
+
+    div[data-testid="stMetric"] {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .footer {
+        margin-top: 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+        text-align: center;
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------
+with st.sidebar:
+    st.image("https://img.icons8.com/fluency/96/test-tube.png", width=70)
+    st.title("PAAD QSAR")
+    st.caption("pIC50 ≥ 5.522879")
+
+    st.markdown("---")
+    st.markdown("### Workflow")
+    st.markdown("""
+    1. **Descriptors** — Convert SMILES to molecular descriptors
+    2. **pIC50 + Similarity** — Calculate activity & nearest neighbours
+    3. **ML + Screening** — Train 9 models and rank candidates
+    """)
+
+    st.markdown("---")
+    st.markdown("### Activity Rule")
+    st.markdown("""
+    - **pIC50 ≥ 5.522879** → Active ✅
+    - **pIC50 < 5.522879** → Inactive ❌
+    """)
+
+    st.markdown("---")
+    with st.expander("ℹ️ About"):
+        st.markdown("""
+        This dashboard runs a full QSAR pipeline on PAAD (pancreatic adenocarcinoma) compound data.
+        It uses locally embedded CID/SMILES identity maps—no PubChem network calls are required.
+        """)
+
+    st.markdown('<div class="footer">Built with Streamlit</div>', unsafe_allow_html=True)
 
 # -------------------------------------------------
 # APP TITLE
 # -------------------------------------------------
-st.title("🧪 PAAD QSAR App (pIC50 ≥ 5.522879)")
+st.markdown('<h1 class="main-header">🧪 PAAD QSAR App</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">A three-step cheminformatics pipeline for descriptor generation, activity classification, and virtual screening.</p>', unsafe_allow_html=True)
+
 st.markdown("""
-This app performs QSAR analysis with three main tasks:
-1. **SMILES to Descriptors**: Convert SMILES to molecular descriptors
-2. **Similarity + MCC**: Calculate similarity and Matthews Correlation Coefficient
-3. **ML + pIC50 ≥ 5.522879**: Machine learning prediction of active compounds
-""")
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+    <div class="task-card" style="flex: 1; min-width: 250px;">
+        <span class="step-badge">1</span>
+        <strong>SMILES → Descriptors</strong><br>
+        <span style="font-size: 0.9rem; color: #475576;">Generate 13 molecular descriptors from SMILES strings.</span>
+    </div>
+    <div class="task-card" style="flex: 1; min-width: 250px;">
+        <span class="step-badge">2</span>
+        <strong>IC50 → pIC50 + Similarity</strong><br>
+        <span style="font-size: 0.9rem; color: #475576;">Classify activity and find top-10 similar compounds.</span>
+    </div>
+    <div class="task-card" style="flex: 1; min-width: 250px;">
+        <span class="step-badge">3</span>
+        <strong>ML + Virtual Screening</strong><br>
+        <span style="font-size: 0.9rem; color: #475576;">Train 9 classifiers and rank active candidates.</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # -------------------------------------------------
 # TABS
 # -------------------------------------------------
 tab1, tab2, tab3 = st.tabs([
-    "1️⃣ SMILES to Descriptors",
-    "2️⃣ IC50 → pIC50 + Top-10 Similarity",
-    "3️⃣ ML (9 Models) + pIC50 ≥ 5.522879"
+    "1️⃣ SMILES → Descriptors",
+    "2️⃣ IC50 → pIC50 + Similarity",
+    "3️⃣ ML + Virtual Screening"
 ])
 
 # =========================================================
 # TASK 1: SMILES to Descriptors
 # =========================================================
 with tab1:
-    st.subheader("🔬 TASK 1: Convert SMILES to Descriptors")
+    st.markdown(
+        '<h2 style="color:#1E3A8A;">🔬 Task 1 — Convert SMILES to Descriptors</h2>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "Upload a CSV or Excel file containing a **SMILES** column. "
+        "The app appends 13 molecular descriptors and preserves all identity columns for downstream tasks."
+    )
 
     smiles_file = st.file_uploader(
-        "Upload SMILES file (CSV or Excel)",
+        "📁 Upload SMILES file (CSV or Excel)",
         type=["csv", "xlsx", "xls"],
         key="task1_smiles_uploader"
     )
 
     if smiles_file:
         try:
+            progress = st.progress(0, text="Reading uploaded file...")
+
             if smiles_file.name.lower().endswith((".xlsx", ".xls")):
                 df = pd.read_excel(smiles_file)
             else:
@@ -230,9 +393,10 @@ with tab1:
             # Preserve ALL original columns. This is important because
             # Task 3 may need the original drug/compound name, CID or SMILES
             # for identity matching. Do not discard the source identity fields.
+            progress.progress(30, text="Generating descriptors...")
             descriptor_records = []
 
-            for smi in df["SMILES"]:
+            for i, smi in enumerate(df["SMILES"]):
                 try:
                     descriptor_records.append(
                         smiles_to_simple_descriptors(smi)
@@ -240,6 +404,11 @@ with tab1:
                 except Exception:
                     descriptor_records.append(
                         smiles_to_simple_descriptors("C")
+                    )
+                if i % max(1, len(df) // 10) == 0:
+                    progress.progress(
+                        int(30 + 60 * (i + 1) / len(df)),
+                        text=f"Processing compound {i + 1} of {len(df)}..."
                     )
 
             df_desc = pd.concat(
@@ -250,26 +419,30 @@ with tab1:
                 axis=1
             )
 
-            st.subheader("Generated Descriptors")
+            progress.progress(100, text="Done")
+            progress.empty()
+
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Compounds processed", f"{len(df_desc):,}")
+            m2.metric("Descriptors added", "13")
+            m3.metric("Source columns preserved", f"{len(df.columns):,}")
+
+            st.markdown("#### Preview")
             st.dataframe(
                 df_desc.head(20),
-                use_container_width=True
-            )
-
-            st.info(
-                f"Generated descriptors for {len(df_desc):,} compounds. "
-                "Original identity columns are preserved for TASK 3 matching."
+                use_container_width=True,
+                height=300
             )
 
             numeric_desc = df_desc.select_dtypes(
                 include=[np.number]
             )
             if not numeric_desc.empty:
-                st.subheader("Descriptor Statistics")
-                st.dataframe(
-                    numeric_desc.describe(),
-                    use_container_width=True
-                )
+                with st.expander("📊 Descriptor Statistics", expanded=False):
+                    st.dataframe(
+                        numeric_desc.describe(),
+                        use_container_width=True
+                    )
 
             output = BytesIO()
             with pd.ExcelWriter(
@@ -282,6 +455,7 @@ with tab1:
                     sheet_name="Descriptors"
                 )
 
+            st.markdown("#### Downloads")
             c1, c2 = st.columns(2)
 
             with c1:
@@ -315,43 +489,39 @@ with tab1:
 # TASK 2: IC50 → pIC50 → Activity + Top-10 Similarity
 # =========================================================
 with tab2:
-    st.subheader(
-        "📊 TASK 2: IC50 → pIC50 → Activity + Top-10 Similarity"
+    st.markdown(
+        '<h2 style="color:#1E3A8A;">📊 Task 2 — IC50 → pIC50 → Activity + Similarity</h2>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "Upload the experimental IC50 training file and the descriptor file from Task 1. "
+        "The app calculates pIC50, assigns activity, transfers CID/SMILES identities, "
+        "and returns the top-10 most similar screening compounds for each training compound."
     )
 
     PIC50_ACTIVE_THRESHOLD = 5.522879
 
-    st.markdown(f"""
-    ### Activity rule used throughout the application
+    with st.expander("📐 Activity rule & formula"):
+        st.markdown(f"""
+        - **pIC50 ≥ {PIC50_ACTIVE_THRESHOLD}** → **Active** ✅
+        - **pIC50 < {PIC50_ACTIVE_THRESHOLD}** → **Inactive** ❌
 
-    - **pIC50 ≥ {PIC50_ACTIVE_THRESHOLD} → Active**
-    - **pIC50 < {PIC50_ACTIVE_THRESHOLD} → Inactive**
+        **pIC50 = 6 − log₁₀(IC50 in µM)**
+        """)
 
-    pIC50 is calculated as:
-
-    **pIC50 = 6 − log10(IC50 in µM)**
-    """)
-
-    st.markdown("""
-    **Upload:**
-    - Training IC50 file: `IC50 value PAAD celline specific.xlsx`
-    - Query descriptors: the file generated by TASK 1
-
-    TASK 2 generates **`PAAD_IC50_pIC50.xlsx`**, which is the file
-    uploaded to TASK 3.
-    """)
-
-    train_file = st.file_uploader(
-        "Upload Training IC50 File",
-        type=["xlsx", "xls", "csv"],
-        key="task2_train_file"
-    )
-
-    query_file = st.file_uploader(
-        "Upload Query Descriptors (from TASK 1)",
-        type=["csv", "xlsx", "xls"],
-        key="task2_query_file"
-    )
+    c1, c2 = st.columns(2)
+    with c1:
+        train_file = st.file_uploader(
+            "📁 Upload Training IC50 File",
+            type=["xlsx", "xls", "csv"],
+            key="task2_train_file"
+        )
+    with c2:
+        query_file = st.file_uploader(
+            "📁 Upload Query Descriptors (from Task 1)",
+            type=["csv", "xlsx", "xls"],
+            key="task2_query_file"
+        )
 
     if train_file and query_file:
         with st.spinner("Calculating pIC50 and Top-10 similarities..."):
@@ -718,7 +888,11 @@ with tab2:
                     "No PubChem lookup is used."
                 )
 
-                st.subheader("📊 Activity Classification")
+                st.markdown("---")
+                st.markdown(
+                    '<h3 style="color:#1E3A8A;">📊 Activity Classification</h3>',
+                    unsafe_allow_html=True
+                )
 
                 total_n = len(df_train)
                 active_n = int(
@@ -728,10 +902,62 @@ with tab2:
                     (df_train["Label"] == 0).sum()
                 )
 
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Total compounds", f"{total_n:,}")
-                c2.metric("Active", f"{active_n:,}")
-                c3.metric("Inactive", f"{inactive_n:,}")
+                col1, col2, col3, col4 = st.columns(4)
+                col1.markdown(
+                    '<div class="metric-card">'
+                    f'<div style="font-size:0.85rem;color:#64748B;">Total compounds</div>'
+                    f'<div style="font-size:1.6rem;font-weight:700;color:#1E3A8A;">{total_n:,}</div>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+                col2.markdown(
+                    '<div class="metric-card success">'
+                    f'<div style="font-size:0.85rem;color:#64748B;">Active</div>'
+                    f'<div style="font-size:1.6rem;font-weight:700;color:#047857;">{active_n:,}</div>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+                col3.markdown(
+                    '<div class="metric-card danger">'
+                    f'<div style="font-size:0.85rem;color:#64748B;">Inactive</div>'
+                    f'<div style="font-size:1.6rem;font-weight:700;color:#B91C1C;">{inactive_n:,}</div>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+                active_pct = (
+                    100 * active_n / total_n
+                    if total_n > 0
+                    else 0
+                )
+                col4.markdown(
+                    '<div class="metric-card warning">'
+                    f'<div style="font-size:0.85rem;color:#64748B;">Active %</div>'
+                    f'<div style="font-size:1.6rem;font-weight:700;color:#B45309;">{active_pct:.1f}%</div>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+
+                # Activity distribution chart
+                if total_n > 0:
+                    fig, ax = plt.subplots(figsize=(5, 3.5))
+                    labels = ["Active", "Inactive"]
+                    sizes = [active_n, inactive_n]
+                    colors = ["#10B981", "#EF4444"]
+                    explode = (0.02, 0.02)
+                    wedges, texts, autotexts = ax.pie(
+                        sizes,
+                        explode=explode,
+                        labels=labels,
+                        colors=colors,
+                        autopct="%1.1f%%",
+                        startangle=90,
+                        textprops={"fontsize": 10}
+                    )
+                    for autotext in autotexts:
+                        autotext.set_color("white")
+                        autotext.set_fontweight("bold")
+                    ax.set_title("Activity Distribution", fontsize=12, fontweight="bold")
+                    st.pyplot(fig)
 
                 # Display available identity column, preferably drug name.
                 preferred_name = next(
@@ -762,16 +988,21 @@ with tab2:
                     if c in df_train.columns
                 ]
 
-                st.dataframe(
-                    df_train[display_cols],
-                    use_container_width=True,
-                    height=400
-                )
+                with st.expander("📋 View classified compounds"):
+                    st.dataframe(
+                        df_train[display_cols],
+                        use_container_width=True,
+                        height=400
+                    )
 
                 # -------------------------------------------------
                 # Top-10 Similarity
                 # -------------------------------------------------
-                st.subheader("🔝 Top-10 Similarity")
+                st.markdown("---")
+                st.markdown(
+                    '<h3 style="color:#1E3A8A;">🔝 Top-10 Similarity</h3>',
+                    unsafe_allow_html=True
+                )
 
                 # Generate the same descriptor representation used by
                 # Task 1 from the Task-2 SMILES.  This makes similarity
@@ -900,11 +1131,31 @@ with tab2:
 
                     results_df = pd.DataFrame(results)
 
-                    st.dataframe(
-                        results_df,
-                        use_container_width=True,
-                        height=500
-                    )
+                    c1, c2 = st.columns([2, 1])
+                    with c1:
+                        st.markdown("**Top-10 similar screening compounds per training compound**")
+                        st.dataframe(
+                            results_df,
+                            use_container_width=True,
+                            height=450
+                        )
+                    with c2:
+                        st.markdown("**Similarity distribution**")
+                        if not results_df.empty and "Similarity" in results_df.columns:
+                            fig2, ax2 = plt.subplots(figsize=(4, 3.5))
+                            ax2.hist(
+                                results_df["Similarity"],
+                                bins=25,
+                                color="#3B82F6",
+                                edgecolor="white",
+                                alpha=0.85
+                            )
+                            ax2.set_xlabel("Cosine similarity", fontsize=9)
+                            ax2.set_ylabel("Count", fontsize=9)
+                            ax2.set_title("Top-10 similarity scores", fontsize=10, fontweight="bold")
+                            ax2.spines["top"].set_visible(False)
+                            ax2.spines["right"].set_visible(False)
+                            st.pyplot(fig2)
 
                     st.caption(
                         "Top-10 structurally similar compounds are shown "
@@ -945,10 +1196,9 @@ with tab2:
                         )
 
                 st.success(
-                    f"✅ TASK 2 completed. "
-                    f"{total_n:,} compounds processed. "
+                    f"✅ Task 2 completed — {total_n:,} compounds processed. "
                     "CID/SMILES identity was carried forward where available. "
-                    "The output is ready for TASK 3."
+                    "The output is ready for Task 3."
                 )
 
                 st.download_button(
@@ -959,7 +1209,8 @@ with tab2:
                         "application/vnd.openxmlformats-officedocument."
                         "spreadsheetml.sheet"
                     ),
-                    key="task2_download_pic50"
+                    key="task2_download_pic50",
+                    use_container_width=True
                 )
 
             except Exception as e:
@@ -970,52 +1221,41 @@ with tab2:
 # TASK 3: ML + pIC50 ≥ 5.522879 + CV-MCC + Virtual Screening
 # =========================================================
 with tab3:
-    st.subheader(
-        "🤖 TASK 3: ML + Cross-Validation MCC + Virtual Screening"
+    st.markdown(
+        '<h2 style="color:#1E3A8A;">🤖 Task 3 — ML + CV-MCC + Virtual Screening</h2>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "Upload the descriptor file from Task 1 and the pIC50/activity file from Task 2. "
+        "The app trains 9 classifiers with SMOTE and stratified CV, selects the best model by MCC, "
+        "and screens the full descriptor library."
     )
 
     PIC50_ACTIVE_THRESHOLD = 5.522879
 
-    st.markdown(f"""
-    ### Upload exactly TWO files
+    with st.expander("📋 Instructions & activity rule"):
+        st.markdown(f"""
+        - **File 1:** `PAAD_Descriptors_RDKit.csv` from Task 1
+        - **File 2:** `PAAD_IC50_pIC50.xlsx` from Task 2
+        - **pIC50 ≥ {PIC50_ACTIVE_THRESHOLD}** → Active
+        - **pIC50 < {PIC50_ACTIVE_THRESHOLD}** → Inactive
+        - Descriptor columns are ML features; CID/SMILES/name are used only for identity matching.
+        - The GUI displays the **Top 200 predicted Active candidates** from the full screening library.
+        """)
 
-    **File 1:** `PAAD_Descriptors_RDKit.csv` generated by TASK 1.
-
-    **File 2:** `PAAD_IC50_pIC50.xlsx` generated by TASK 2.
-
-    **Activity rule:**
-    - **pIC50 ≥ {PIC50_ACTIVE_THRESHOLD} → Active**
-    - **pIC50 < {PIC50_ACTIVE_THRESHOLD} → Inactive**
-
-    The number of pIC50 compounds is determined **only from the uploaded
-    file**. No fixed number such as 203 is used.
-
-    Descriptor columns are ML features.
-
-    CID, SMILES and compound names are used only for identity matching
-    and are never used as ML features.
-
-    **No PubChem lookup is required.** Task 3 uses CID/SMILES carried
-    in the Task-2 file. If an experimental compound is not present in
-    the 65,482-compound screening library, the same Task-1 descriptor
-    representation is generated locally from its supplied SMILES for
-    ML training only.
-
-    The complete Task-1 descriptor library is screened, but the GUI
-    displays only the **Top 200 predicted Active candidates**.
-    """)
-
-    desc_file_ml = st.file_uploader(
-        "File 1 — Descriptor file from TASK 1",
-        type=["csv", "xlsx", "xls"],
-        key="task3_desc_file"
-    )
-
-    pic50_file_ml = st.file_uploader(
-        "File 2 — pIC50 file from TASK 2",
-        type=["xlsx", "xls", "csv"],
-        key="task3_pic50_file"
-    )
+    c1, c2 = st.columns(2)
+    with c1:
+        desc_file_ml = st.file_uploader(
+            "📁 File 1 — Descriptor file from Task 1",
+            type=["csv", "xlsx", "xls"],
+            key="task3_desc_file"
+        )
+    with c2:
+        pic50_file_ml = st.file_uploader(
+            "📁 File 2 — pIC50 file from Task 2",
+            type=["xlsx", "xls", "csv"],
+            key="task3_pic50_file"
+        )
 
     if desc_file_ml and pic50_file_ml:
         with st.spinner(
@@ -1708,8 +1948,10 @@ with tab3:
                 # -------------------------------------------------
                 # ML + CV-MCC
                 # -------------------------------------------------
-                st.subheader(
-                    f"🤖 {n_splits}-Fold Cross-Validation + MCC"
+                st.markdown("---")
+                st.markdown(
+                    f'<h3 style="color:#1E3A8A;">🤖 {n_splits}-Fold Cross-Validation Leaderboard</h3>',
+                    unsafe_allow_html=True
                 )
 
                 scoring = {
@@ -1723,9 +1965,15 @@ with tab3:
 
                 model_results = []
                 fitted_models = {}
+                progress_models = st.progress(0, text="Training models...")
 
-                for model_name, model in models.items():
+                for i, (model_name, model) in enumerate(models.items()):
                     try:
+                        progress_models.progress(
+                            int(100 * (i + 1) / len(models)),
+                            text=f"Training {model_name}..."
+                        )
+
                         pipeline = ImbPipeline([
                             (
                                 "smote",
@@ -1805,6 +2053,8 @@ with tab3:
                             f"{model_error}"
                         )
 
+                progress_models.empty()
+
                 if not model_results:
                     st.error(
                         "All ML models failed."
@@ -1835,10 +2085,37 @@ with tab3:
                         .round(4)
                     )
 
-                st.dataframe(
-                    display_perf,
-                    use_container_width=True
-                )
+                col_a, col_b = st.columns([3, 2])
+                with col_a:
+                    st.markdown("**Performance table**")
+                    st.dataframe(
+                        display_perf,
+                        use_container_width=True,
+                        height=420
+                    )
+                with col_b:
+                    st.markdown("**MCC leaderboard**")
+                    fig3, ax3 = plt.subplots(figsize=(4, 4.5))
+                    colors = [
+                        "#F59E0B" if m == performance_df.iloc[0]["Model"]
+                        else "#3B82F6"
+                        for m in performance_df["Model"]
+                    ]
+                    ax3.barh(
+                        performance_df["Model"][::-1],
+                        performance_df["MCC"][::-1],
+                        color=colors[::-1]
+                    )
+                    ax3.set_xlabel("CV-MCC", fontsize=9)
+                    ax3.set_title(
+                        "Models ranked by CV-MCC",
+                        fontsize=10,
+                        fontweight="bold"
+                    )
+                    ax3.set_xlim(0, 1)
+                    ax3.spines["top"].set_visible(False)
+                    ax3.spines["right"].set_visible(False)
+                    st.pyplot(fig3)
 
                 # -------------------------------------------------
                 # Best model by CV-MCC
@@ -1855,9 +2132,13 @@ with tab3:
                     performance_df.iloc[0]["MCC"]
                 )
 
-                st.success(
-                    f"🏆 Best Model: {best_model_name} "
-                    f"| CV-MCC = {best_mcc:.4f}"
+                st.markdown(
+                    f'<div class="metric-card success">'
+                    f'<div style="font-size:0.9rem;color:#64748B;">🏆 Best model</div>'
+                    f'<div style="font-size:1.5rem;font-weight:700;color:#047857;">{best_model_name}</div>'
+                    f'<div style="font-size:1.1rem;color:#047857;">CV-MCC = {best_mcc:.4f}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
                 )
 
                 # Fit best model using ALL matched training compounds.
@@ -1869,8 +2150,10 @@ with tab3:
                 # -------------------------------------------------
                 # Virtual Screening
                 # -------------------------------------------------
-                st.subheader(
-                    "🔎 Virtual Screening"
+                st.markdown("---")
+                st.markdown(
+                    '<h3 style="color:#1E3A8A;">🔎 Virtual Screening</h3>',
+                    unsafe_allow_html=True
                 )
 
                 all_numeric = df_desc.select_dtypes(
@@ -1965,32 +2248,72 @@ with tab3:
                     200
                 ).copy()
 
-                c1, c2, c3 = st.columns(3)
-
+                c1, c2, c3, c4 = st.columns(4)
                 c1.metric(
                     "Total Descriptor Compounds",
                     f"{len(df_desc):,}"
                 )
-
                 c2.metric(
                     "Predicted Active",
                     f"{len(active_candidates):,}"
                 )
-
                 c3.metric(
                     "Displayed",
                     f"{len(top200):,}"
                 )
-
-                st.subheader(
-                    "🏆 Top 200 Predicted Active Candidates"
+                mean_prob = (
+                    top200["Predicted_Probability_Active"].mean()
+                    if not top200.empty
+                    else 0.0
+                )
+                c4.metric(
+                    "Top-200 Mean Probability",
+                    f"{mean_prob:.3f}"
                 )
 
-                st.dataframe(
-                    top200,
-                    use_container_width=True,
-                    height=600
+                st.markdown(
+                    '<h3 style="color:#1E3A8A;">🏆 Top 200 Predicted Active Candidates</h3>',
+                    unsafe_allow_html=True
                 )
+
+                col_left, col_right = st.columns([3, 1])
+                with col_left:
+                    st.dataframe(
+                        top200,
+                        use_container_width=True,
+                        height=600
+                    )
+                with col_right:
+                    st.markdown("**Probability distribution**")
+                    fig4, ax4 = plt.subplots(figsize=(4, 5))
+                    probs = screening_df[
+                        "Predicted_Probability_Active"
+                    ].values
+                    ax4.hist(
+                        probs,
+                        bins=30,
+                        color="#8B5CF6",
+                        edgecolor="white",
+                        alpha=0.85
+                    )
+                    ax4.axvline(
+                        0.5,
+                        color="#EF4444",
+                        linestyle="--",
+                        linewidth=2,
+                        label="Decision threshold"
+                    )
+                    ax4.set_xlabel("Predicted probability (Active)", fontsize=9)
+                    ax4.set_ylabel("Count", fontsize=9)
+                    ax4.set_title(
+                        "Screening probability distribution",
+                        fontsize=10,
+                        fontweight="bold"
+                    )
+                    ax4.legend(fontsize=8)
+                    ax4.spines["top"].set_visible(False)
+                    ax4.spines["right"].set_visible(False)
+                    st.pyplot(fig4)
 
                 st.info(
                     f"The complete library of "
@@ -2094,7 +2417,7 @@ with tab3:
                     )
 
                 st.download_button(
-                    "📥 Download TASK 3 Report",
+                    "📥 Download Task 3 Report",
                     data=output.getvalue(),
                     file_name=(
                         "PAAD_pIC50_ML_CV_MCC_Top200.xlsx"
@@ -2103,7 +2426,8 @@ with tab3:
                         "application/vnd.openxmlformats-officedocument."
                         "spreadsheetml.sheet"
                     ),
-                    key="task3_download_report"
+                    key="task3_download_report",
+                    use_container_width=True
                 )
 
             except Exception as e:
@@ -2111,3 +2435,12 @@ with tab3:
                     f"❌ TASK 3 error: {str(e)}"
                 )
                 st.exception(e)
+
+# -------------------------------------------------
+# FOOTER
+# -------------------------------------------------
+st.markdown("""
+<div class="footer">
+    PAAD QSAR App — Built with Streamlit · pIC50 threshold 5.522879 · No PubChem lookup required
+</div>
+""", unsafe_allow_html=True)
