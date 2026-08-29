@@ -60,6 +60,23 @@ def drop_derived_activity_columns(df):
         errors="ignore"
     )
 
+
+def is_missing_value(value):
+    """Robust missing-value check for mixed text/numeric identity fields."""
+    if value is None:
+        return True
+
+    try:
+        result = pd.isna(value)
+        if isinstance(result, (bool, np.bool_)) and result:
+            return True
+    except Exception:
+        pass
+
+    return str(value).strip().lower() in {
+        "", "nan", "none", "null", "na", "n/a"
+    }
+
 # -------------------------------------------------
 # LOCAL PAAD DRUG IDENTITY MAP
 # -------------------------------------------------
@@ -153,6 +170,8 @@ st.set_page_config(
 # APP TITLE
 # -------------------------------------------------
 st.title("🧪 PAAD QSAR App (pIC50 ≥ 5.522879)")
+
+st.caption("Server-safe Pandas identity handling enabled for CID/SMILES fields.")
 st.markdown("""
 This app performs QSAR analysis with three main tasks:
 1. **SMILES to Descriptors**: Convert SMILES to molecular descriptors
@@ -400,36 +419,75 @@ with tab2:
 
                 if source_name_col_local is not None:
                     def _local_name_key(v):
-                        if pd.isna(v):
+                        if v is None:
                             return ""
+                        try:
+                            if pd.isna(v):
+                                return ""
+                        except Exception:
+                            pass
                         s = str(v).strip().lower()
                         s = re.sub(r"[^a-z0-9]+", " ", s)
                         return re.sub(r"\s+", " ", s).strip()
 
+                    # IMPORTANT:
+                    # CID and SMILES are identity fields, not numeric ML
+                    # features.  Explicitly use object dtype so newer
+                    # Pandas versions on Streamlit Cloud do not reject
+                    # string SMILES values after a column starts as NaN.
                     if "cid" not in df_train.columns:
-                        df_train["cid"] = np.nan
+                        df_train["cid"] = pd.Series(
+                            [None] * len(df_train),
+                            index=df_train.index,
+                            dtype="object"
+                        )
+                    else:
+                        df_train["cid"] = df_train["cid"].astype("object")
+
                     if "smiles" not in df_train.columns:
-                        df_train["smiles"] = np.nan
+                        df_train["smiles"] = pd.Series(
+                            [None] * len(df_train),
+                            index=df_train.index,
+                            dtype="object"
+                        )
+                    else:
+                        df_train["smiles"] = df_train["smiles"].astype("object")
+
+                    # Build lists first and assign complete columns once.
+                    # This avoids cell-by-cell dtype coercion with .at[].
+                    cid_values = df_train["cid"].tolist()
+                    smiles_values = df_train["smiles"].tolist()
 
                     local_identity_hits = 0
-                    for idx, drug_name in df_train[
-                        source_name_col_local
-                    ].items():
+
+                    for pos, drug_name in enumerate(
+                        df_train[source_name_col_local].tolist()
+                    ):
                         key = _local_name_key(drug_name)
                         rec = LOCAL_PAAD_IDENTITY_MAP.get(key)
 
-                        if rec is not None:
-                            if pd.isna(df_train.at[idx, "cid"]) or str(
-                                df_train.at[idx, "cid"]
-                            ).strip() == "":
-                                df_train.at[idx, "cid"] = rec["CID"]
+                        if rec is None:
+                            continue
 
-                            if pd.isna(df_train.at[idx, "smiles"]) or str(
-                                df_train.at[idx, "smiles"]
-                            ).strip() == "":
-                                df_train.at[idx, "smiles"] = rec["SMILES"]
+                        if is_missing_value(cid_values[pos]):
+                            cid_values[pos] = rec.get("CID")
 
-                            local_identity_hits += 1
+                        if is_missing_value(smiles_values[pos]):
+                            smiles_values[pos] = rec.get("SMILES")
+
+                        local_identity_hits += 1
+
+                    df_train["cid"] = pd.Series(
+                        cid_values,
+                        index=df_train.index,
+                        dtype="object"
+                    )
+
+                    df_train["smiles"] = pd.Series(
+                        smiles_values,
+                        index=df_train.index,
+                        dtype="object"
+                    )
 
                     st.info(
                         f"Local PAAD identity map resolved "
@@ -1612,6 +1670,13 @@ with tab3:
                     active_n,
                     inactive_n
                 )
+
+                if min_class < 2:
+                    st.error(
+                        "At least 2 Active and 2 Inactive compounds are "
+                        "required for stratified cross-validation."
+                    )
+                    st.stop()
 
                 n_splits = min(
                     5,
